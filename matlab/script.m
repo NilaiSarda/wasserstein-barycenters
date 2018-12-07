@@ -3,16 +3,16 @@ getd('toolbox_signal/');
 getd('toolbox_general/');
 mynorm = @(a)norm(a(:));
 sum3 = @(a)sum(a(:));
-n = 100;
+n = 20;
 p = 20;
 [Y,X] = meshgrid(linspace(0,1,n), linspace(0,1,n));
 gaussian = @(a,b,sigma)exp( -((X-a).^2+(Y-b).^2)/(2*sigma^2) );
 normalize = @(u)u/sum(u(:));
 sigma = .1;
 gg = 0.1;
-rho = .05; % minimum density value
+rho = .01; % minimum density value
 f0 = normalize( rho + gaussian(.2,.3,sigma) );
-f1 = normalize( rho + gaussian(.6,.5,sigma*.5) + .5*gaussian(.7,.4,sigma*.7) );
+f1 = normalize( rho + gaussian(.1,.9,sigma) + gaussian(.7,.4,sigma) );
 dx = @(u)u([2:end 1],:,:)-u;
 dy = @(u)u(:,[2:end 1],:)-u;
 dxS = @(u)-u+u([end 1:end-1],:,:);
@@ -21,9 +21,9 @@ grad = @(f)cat(4, dx(f), dy(f));
 div  = @(u)-dxS(u(:,:,:,1)) - dyS(u(:,:,:,2));
 dt  = @(f)cat(3, f(:,:,2:end)-f(:,:,1:end-1), zeros(size(f,1),size(f,2)) );
 dtS = @(u)cat(3, -u(:,:,1), u(:,:,1:end-2)-u(:,:,2:end-1), u(:,:,end-1));
-A = @(w)cat( 3, div(w(:,:,:,1:2))+dt(w(:,:,:,3))-gg*div(grad(w(:,:,:,1:2))), w(:,:,1,3), w(:,:,end,3) );
+A = @(w)cat( 3, div(w(:,:,:,1:2))+dt(w(:,:,:,3)), w(:,:,1,3), w(:,:,end,3) );
 U = @(r0,r1)cat(3, r0, zeros(n,n,p-2), r1);
-AS = @(s)cat(4, -grad(s(:,:,1:p)), dtS(s(:,:,1:p)) - gg*div(grad(w(:,:,:,1:2))) + U(s(:,:,end-1),s(:,:,end)) );
+AS = @(s)cat(4, -grad(s(:,:,1:p)), dtS(s(:,:,1:p)) + U(s(:,:,end-1),s(:,:,end)) );
 r0 = cat(3, zeros(n,n,p), f0, f1);
 J = @(w)sum3(  sum(w(:,:,:,1:2).^2,4) ./ w(:,:,:,3)   );
 PolyCoef = @(m0,f0,lambda)[ones(length(f0),1), 4*lambda-f0, 4*lambda^2-4*f0, -lambda*sum(m0.^2,2) - 4*lambda^2*f0];
@@ -69,4 +69,10 @@ title('J(w)');
 axis tight;
 sel = round(linspace(1,p,6));
 clf;
-imageplot( mat2cell(w(:,:,sel,3), n, n, ones(6,1)) , '', 2,3);
+% imageplot( mat2cell(w(:,:,sel,3), n, n, ones(6,1)) , '', 2,3);
+for i = 1:6
+    s = sel(i);
+    subplot(2,3,i);
+    contourf(w(:,:,s,3));
+    title(['Time t = ' num2str(s)])
+end
